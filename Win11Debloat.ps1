@@ -25,6 +25,8 @@ param (
     [switch]$DisableDesktopSpotlight,
     [switch]$DisableLockscrTips, [switch]$DisableLockscreenTips,
     [switch]$DisableWindowsSuggestions, [switch]$DisableSuggestions,
+    [switch]$DisableSettings365Ads,
+    [switch]$DisableSettingsHome,
     [switch]$ShowHiddenFolders,
     [switch]$ShowKnownFileExt,
     [switch]$HideDupliDrive,
@@ -38,7 +40,9 @@ param (
     [switch]$DisableChat, [switch]$HideChat,
     [switch]$EnableEndTask,
     [switch]$ClearStart,
+    [string]$ReplaceStart,
     [switch]$ClearStartAllUsers,
+    [string]$ReplaceStartAllUsers,
     [switch]$RevertContextMenu,
     [switch]$DisableMouseAcceleration,
     [switch]$DisableStickyKeys,
@@ -132,12 +136,12 @@ function ShowAppSelectionForm {
                     $topIndex = $script:selectionBoxIndex
 
                     if ($selectionBox.SelectedIndex -gt $topIndex) {
-                        for (($i = ($topIndex)); $i -le $selectionBox.SelectedIndex; $i++){
+                        for (($i = ($topIndex)); $i -le $selectionBox.SelectedIndex; $i++) {
                             $selectionBox.SetItemChecked($i, $selectionBox.GetItemChecked($topIndex))
                         }
                     }
                     elseif ($topIndex -gt $selectionBox.SelectedIndex) {
-                        for (($i = ($selectionBox.SelectedIndex)); $i -le $topIndex; $i++){
+                        for (($i = ($selectionBox.SelectedIndex)); $i -le $topIndex; $i++) {
                             $selectionBox.SetItemChecked($i, $selectionBox.GetItemChecked($topIndex))
                         }
                     }
@@ -151,7 +155,7 @@ function ShowAppSelectionForm {
 
     $check_All=
     {
-        for (($i = 0); $i -lt $selectionBox.Items.Count; $i++){
+        for (($i = 0); $i -lt $selectionBox.Items.Count; $i++) {
             $selectionBox.SetItemChecked($i, $checkUncheckCheckBox.Checked)
         }
     }
@@ -382,7 +386,7 @@ function RemoveApps {
             $app = '*' + $app + '*'
 
             # Remove installed app for all existing users
-            if ($WinVersion -ge 22000){
+            if ($WinVersion -ge 22000) {
                 # Windows 11 build 22000 or later
                 try {
                     Get-AppxPackage -Name $app -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction Continue
@@ -477,7 +481,7 @@ function ForceRemoveEdge {
             "$edgeStub"
         )
 
-        foreach ($path in $edgePaths){
+        foreach ($path in $edgePaths) {
             if (Test-Path -Path $path) {
                 Remove-Item -Path $path -Force -Recurse -ErrorAction SilentlyContinue
                 Write-Host "  Removed $path" -ForegroundColor DarkGray
@@ -632,8 +636,8 @@ function ReplaceStartMenuForAllUsers {
 # Credit: https://lazyadmin.nl/win-11/customize-windows-11-start-menu-layout/
 function ReplaceStartMenu {
     param (
-        $startMenuBinFile = "$env:LOCALAPPDATA\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState\start2.bin",
-        $startMenuTemplate = "$PSScriptRoot/Start/start2.bin"
+        $startMenuTemplate = "$PSScriptRoot/Start/start2.bin",
+        $startMenuBinFile = "$env:LOCALAPPDATA\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState\start2.bin"
     )
 
     # Change path to correct user if a user was specified
@@ -643,13 +647,18 @@ function ReplaceStartMenu {
 
     # Check if template bin file exists, return early if it doesn't
     if (-not (Test-Path $startMenuTemplate)) {
-        Write-Host "Error: Unable to clear start menu, start2.bin file missing from script folder" -ForegroundColor Red
+        Write-Host "Error: Unable to replace start menu, template file not found" -ForegroundColor Red
+        return
+    }
+
+    if ([IO.Path]::GetExtension($startMenuTemplate) -ne ".bin" ) {
+        Write-Host "Error: Unable to replace start menu, template file is not a valid .bin file" -ForegroundColor Red
         return
     }
 
     # Check if bin file exists, return early if it doesn't
     if (-not (Test-Path $startMenuBinFile)) {
-        Write-Host "Error: Unable to clear start menu for user $(GetUserName), start2.bin file could not found" -ForegroundColor Red
+        Write-Host "Error: Unable to replace start menu for user $(GetUserName), original start2.bin file not found" -ForegroundColor Red
         return
     }
 
@@ -865,9 +874,9 @@ function DisplayCustomModeOptions {
 
     Write-Output ""
 
-    if ($( Read-Host -Prompt "Disable tips, tricks, suggestions and ads in start, settings, notifications, explorer, desktop and lockscreen? (y/n)" ) -eq 'y') {
+    if ($( Read-Host -Prompt "Disable tips, tricks, suggestions and ads in start, settings, notifications, explorer and lockscreen? (y/n)" ) -eq 'y') {
         AddParameter 'DisableSuggestions' 'Disable tips, tricks, suggestions and ads in start, settings, notifications and File Explorer'
-        AddParameter 'DisableDesktopSpotlight' 'Disable the Windows Spotlight desktop background option.'
+        AddParameter 'DisableSettings365Ads' 'Disable Microsoft 365 ads in Settings Home'
         AddParameter 'DisableLockscreenTips' 'Disable tips & tricks on the lockscreen'
     }
 
@@ -878,7 +887,7 @@ function DisplayCustomModeOptions {
     }
 
     # Only show this option for Windows 11 users running build 22621 or later
-    if ($WinVersion -ge 22621){
+    if ($WinVersion -ge 22621) {
         Write-Output ""
 
         if ($( Read-Host -Prompt "Disable & remove Microsoft Copilot and Windows Recall snapshots? This applies to all users (y/n)" ) -eq 'y') {
@@ -887,8 +896,14 @@ function DisplayCustomModeOptions {
         }
     }
 
+    Write-Output ""
+
+    if ($( Read-Host -Prompt "Disable Windows Spotlight background on desktop? (y/n)" ) -eq 'y') {
+        AddParameter 'DisableDesktopSpotlight' 'Disable the Windows Spotlight desktop background option.'
+    }
+
     # Only show this option for Windows 11 users running build 22000 or later
-    if ($WinVersion -ge 22000){
+    if ($WinVersion -ge 22000) {
         Write-Output ""
 
         if ($( Read-Host -Prompt "Restore the old Windows 10 style context menu? (y/n)" ) -eq 'y') {
@@ -903,7 +918,7 @@ function DisplayCustomModeOptions {
     }
 
     # Only show this option for Windows 11 users running build 26100 or later
-    if ($WinVersion -ge 26100){
+    if ($WinVersion -ge 26100) {
         Write-Output ""
 
         if ($( Read-Host -Prompt "Disable the Sticky Keys keyboard shortcut? (y/n)" ) -eq 'y') {
@@ -918,7 +933,7 @@ function DisplayCustomModeOptions {
     }
 
     # Only show option for disabling context menu items for Windows 10 users or if the user opted to restore the Windows 10 context menu
-    if ((get-ciminstance -query "select caption from win32_operatingsystem where caption like '%Windows 10%'") -or $script:Params.ContainsKey('RevertContextMenu')){
+    if ((get-ciminstance -query "select caption from win32_operatingsystem where caption like '%Windows 10%'") -or $script:Params.ContainsKey('RevertContextMenu')) {
         Write-Output ""
 
         if ($( Read-Host -Prompt "Do you want to disable any context menu options? (y/n)" ) -eq 'y') {
@@ -943,7 +958,7 @@ function DisplayCustomModeOptions {
     }
 
     # Only show this option for Windows 11 users running build 22621 or later
-    if ($WinVersion -ge 22621){
+    if ($WinVersion -ge 22621) {
         Write-Output ""
 
         if ($( Read-Host -Prompt "Do you want to make any changes to the start menu? (y/n)" ) -eq 'y') {
@@ -987,7 +1002,7 @@ function DisplayCustomModeOptions {
 
     if ($( Read-Host -Prompt "Do you want to make any changes to the taskbar and related services? (y/n)" ) -eq 'y') {
         # Only show these specific options for Windows 11 users running build 22000 or later
-        if ($WinVersion -ge 22000){
+        if ($WinVersion -ge 22000) {
             Write-Output ""
 
             if ($( Read-Host -Prompt "   Align taskbar buttons to the left side? (y/n)" ) -eq 'y') {
@@ -1037,7 +1052,7 @@ function DisplayCustomModeOptions {
         }
 
         # Only show this options for Windows users running build 22621 or earlier
-        if ($WinVersion -le 22621){
+        if ($WinVersion -le 22621) {
             Write-Output ""
 
             if ($( Read-Host -Prompt "   Hide the chat (meet now) icon from the taskbar? (y/n)" ) -eq 'y') {
@@ -1046,7 +1061,7 @@ function DisplayCustomModeOptions {
         }
         
         # Only show this options for Windows users running build 22631 or later
-        if ($WinVersion -ge 22631){
+        if ($WinVersion -ge 22631) {
             Write-Output ""
 
             if ($( Read-Host -Prompt "   Enable the 'End Task' option in the taskbar right click menu? (y/n)" ) -eq 'y') {
@@ -1100,7 +1115,7 @@ function DisplayCustomModeOptions {
         }
 
         # Only show this option for Windows 11 users running build 22000 or later
-        if ($WinVersion -ge 22000){
+        if ($WinVersion -ge 22000) {
             Write-Output ""
 
             if ($( Read-Host -Prompt "   Hide the Home section from the File Explorer sidepanel? (y/n)" ) -eq 'y') {
@@ -1121,7 +1136,7 @@ function DisplayCustomModeOptions {
         }
 
         # Only show option for disabling these specific folders for Windows 10 users
-        if (get-ciminstance -query "select caption from win32_operatingsystem where caption like '%Windows 10%'"){
+        if (get-ciminstance -query "select caption from win32_operatingsystem where caption like '%Windows 10%'") {
             Write-Output ""
 
             if ($( Read-Host -Prompt "Do you want to hide any folders from the File Explorer sidepanel? (y/n)" ) -eq 'y') {
@@ -1284,8 +1299,8 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or $RunS
 
             PrintHeader 'Menu'
 
-            Write-Output "(1) Default mode: Apply the default settings"
-            Write-Output "(2) Custom mode: Modify the script to your needs"
+            Write-Output "(1) Default mode: Quickly apply the recommended changes"
+            Write-Output "(2) Custom mode: Manually select what changes to make"
             Write-Output "(3) App removal mode: Select & remove apps, without making other changes"
 
             # Only show this option if SavedSettings file exists
@@ -1302,9 +1317,8 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or $RunS
 
             $Mode = Read-Host $ModeSelectionMessage
 
-            # Show information based on user input, Suppress user prompt if Silent parameter was passed
             if ($Mode -eq '0') {
-                # Get & print script information from file
+                # Print information screen from file
                 PrintFromFile "$PSScriptRoot/Assets/Menus/Info" "Information"
 
                 Write-Output "Press any key to go back..."
@@ -1321,7 +1335,7 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or $RunS
     switch ($Mode) {
         # Default mode, loads defaults after confirmation
         '1' { 
-            # Print the default settings & require userconfirmation, unless Silent parameter was passed
+            # Show the default settings with confirmation, unless Silent parameter was passed
             if (-not $Silent) {
                 PrintFromFile "$PSScriptRoot/Assets/Menus/DefaultSettings" "Default Mode"
 
@@ -1333,9 +1347,9 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or $RunS
 
             PrintHeader 'Default Mode'
 
-            # Add default parameters if they don't already exist
+            # Add default parameters, if they don't already exist
             foreach ($ParameterName in $DefaultParameterNames) {
-                if (-not $script:Params.ContainsKey($ParameterName)){
+                if (-not $script:Params.ContainsKey($ParameterName)) {
                     $script:Params.Add($ParameterName, $true)
                 }
             }
@@ -1376,12 +1390,12 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or $RunS
             }
         }
 
-        # Load custom options selection from the "SavedSettings" file
+        # Load custom options from the "SavedSettings" file
         '4' {
             PrintHeader 'Custom Mode'
             Write-Output "Win11Debloat will make the following changes:"
 
-            # Get & print default settings info from file
+            # Print the saved settings info from file
             Foreach ($line in (Get-Content -Path "$PSScriptRoot/SavedSettings" )) { 
                 # Remove any spaces before and after the line
                 $line = $line.Trim()
@@ -1405,7 +1419,7 @@ if ((-not $script:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or $RunS
                         Write-Output $line.Substring(($line.IndexOf('#') + 1), ($line.Length - $line.IndexOf('#') - 1))
                     }
 
-                    if (-not $script:Params.ContainsKey($parameterName)){
+                    if (-not $script:Params.ContainsKey($parameterName)) {
                         $script:Params.Add($parameterName, $true)
                     }
                 }
@@ -1504,12 +1518,20 @@ switch ($script:Params.Keys) {
         RegImport "> Disabling tips, tricks, suggestions and ads across Windows..." "Disable_Windows_Suggestions.reg"
         continue
     }
-    'DisableDesktopSpotlight' {
-        RegImport "> Disabling the 'Windows Spotlight' desktop background option..." "Disable_Desktop_Spotlight.reg"
+    'DisableSettings365Ads' {
+        RegImport "> Disabling Microsoft 365 ads in Settings Home..." "Disable_Settings_365_Ads.reg"
         continue
     }
     {$_ -in "DisableLockscrTips", "DisableLockscreenTips"} {
         RegImport "> Disabling tips & tricks on the lockscreen..." "Disable_Lockscreen_Tips.reg"
+        continue
+    }
+    'DisableDesktopSpotlight' {
+        RegImport "> Disabling the 'Windows Spotlight' desktop background option..." "Disable_Desktop_Spotlight.reg"
+        continue
+    }
+    'DisableSettingsHome' {
+        RegImport "> Disabling the Settings Home page..." "Disable_Settings_Home.reg"
         continue
     }
     {$_ -in "DisableBingSearches", "DisableBing"} {
@@ -1554,8 +1576,18 @@ switch ($script:Params.Keys) {
         Write-Output ""
         continue
     }
+    'ReplaceStart' {
+        Write-Output "> Replacing the start menu for user $(GetUserName)..."
+        ReplaceStartMenu $script:Params.Item("ReplaceStart")
+        Write-Output ""
+        continue
+    }
     'ClearStartAllUsers' {
         ReplaceStartMenuForAllUsers
+        continue
+    }
+    'ReplaceStartAllUsers' {
+        ReplaceStartMenuForAllUsers $script:Params.Item("ReplaceStartAllUsers")
         continue
     }
     'DisableStartRecommended' {
@@ -1588,6 +1620,10 @@ switch ($script:Params.Keys) {
     }
     {$_ -in "HideWidgets", "DisableWidgets"} {
         RegImport "> Disabling the widget service and hiding the widget icon from the taskbar..." "Disable_Widgets_Taskbar.reg"
+
+        # Also remove the app package for Widgets
+        $appsList = 'Microsoft.StartExperiencesApp'
+        RemoveApps $appsList
         continue
     }
     {$_ -in "HideChat", "DisableChat"} {

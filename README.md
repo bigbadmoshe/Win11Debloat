@@ -14,6 +14,7 @@
 
 # Win11Debloat
 
+[![GitHub Release](https://img.shields.io/github/v/release/Raphire/Win11Debloat?style=for-the-badge&label=Latest%20release)](https://github.com/Raphire/Win11Debloat/releases/latest)
 [![Join the Discussion](https://img.shields.io/badge/Join-the%20Discussion-2D9F2D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Raphire/Win11Debloat/discussions)
 [![Static Badge](https://img.shields.io/badge/Documentation-_?style=for-the-badge&logo=bookstack&color=grey)](https://github.com/Raphire/Win11Debloat/wiki/)
 
@@ -144,7 +145,7 @@ Below is an overview of the key features and functionality offered by Win11Deblo
 
 ### Default Settings
 
-The default mode allows you to quickly and easily apply the changes that are recommended for most people. This includes uninstalling apps that most would consider bloatware, removing many annoying distractions and disabling telemetry and tracking. Expand the section below for more information.
+Win11Debloat offers a 1-click default mode that allows you to quickly and easily apply the changes that are recommended for most people. This includes uninstalling apps that most would consider bloatware, removing many annoying distractions and disabling telemetry and tracking. Expand the section below for more information.
 
 <details>
   <summary>Click to expand</summary>
@@ -326,7 +327,7 @@ The default mode allows you to quickly and easily apply the changes that are rec
       - Microsoft.RemoteDesktop*
       - Windows.DevHome*
   
-      * Can be removed by running the script with the relevant parameter. (See parameters section below)
+      * Can be removed by running the script with the relevant parameter. (Please refer to the wiki for more details)
   </blockquote>
   </details>
 </details>
